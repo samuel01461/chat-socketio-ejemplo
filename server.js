@@ -27,7 +27,7 @@ io.on("connection", (socket) => {
         socket.to(destination).emit("mensajePrivado", { globalId, msj });
     });
 
-    socket.on("desconectar", () => {
+    socket.on("disconnect", () => {
         usuarios = usuarios.filter(u => u !== socket.id);
         io.emit('updateUsuariosLista', usuarios);
     });
