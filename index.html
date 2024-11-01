@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <h1>Chat Grupal</h1>
+    <div id="usuarios_section">
+        <h2>Usuarios conectados: </h2><br>
+        <ul id="usuarios"><h2>No hay usuarios conectados</h2></ul>
+    </div>
+    <div id="mensajes_section">
+        <h2>Ultimos mensajes</h2>
+        <ul id="mensajes">
+    </ul>
+    </div>
+    <div id="chat_input">
+        <input type="text" id="mensaje" name="mensaje">
+        <button type="submit" id="enviar" name="enviar">Enviar</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        var globalId = null;
+        
+        socket.on("connect", function() {
+            globalId = socket.id;
+        });
+
+        socket.on("nuevoMensaje", function(data) {
+            var msj = document.createElement("li");
+            msj.textContent = data.id + ": " + data.msg;
+            document.getElementById("mensajes").appendChild(msj);
+        });
+
+        socket.on("updateUsuariosLista", function(usuarios) {
+            document.getElementById("usuarios").innerHTML = "";
+            var msj = document.getElementById("mensaje").value;
+
+            if (usuarios.length > 0) {
+                usuarios.map(id => {
+                    var li = document.createElement("li");
+                    if (id == globalId) {
+                        li.textContent = id + " (YO): ";
+                    } else {
+                        li.textContent = id + ": ";
+                        var button = document.createElement("button");
+                        button.id = "EnviarPrivado";
+                        button.name = id;
+                        button.onclick = EnviarPrivado;
+                        button.setAttribute("user-id", id);
+                        button.textContent = "Enviar privado";
+                        li.appendChild(button);
+                    }
+                    document.getElementById("usuarios").appendChild(li);
+                });
+            }
+        });
+
+        socket.on("mensajePrivado", function(data) {
+            var msj = document.createElement("li");
+            msj.textContent = "Mensaje privado de: " + data.globalId + ": " + data.msj;
+            document.getElementById("mensajes").appendChild(msj);
+        });
+
+        document.getElementById("enviar").addEventListener("click", function(){
+            var msj = document.getElementById("mensaje").value;
+
+            if (msj) {
+                socket.emit("nuevoMensaje", msj);
+                document.getElementById("mensaje").value = "";
+            } else {
+                alert("Ingrese un mensaje");
+            }
+        });
+
+        function EnviarPrivado() {
+            var destination = this.name;
+            var msj = document.getElementById("mensaje").value;
+
+            if (msj) {
+                socket.emit("mensajePrivado", { globalId, destination, msj });
+                document.getElementById("mensaje").value = "";
+                
+                var msj_li = document.createElement("li");
+                msj_li.textContent = "Enviaste un mensaje privado a " + destination + ": " + msj;
+                document.getElementById("mensajes").appendChild(msj_li);
+            } else {
+                alert("Ingrese un mensaje");
+            }
+        }
+    </script>
+</body>
+</html>
